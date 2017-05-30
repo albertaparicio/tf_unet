@@ -26,7 +26,7 @@ class BaseDataProvider(object):
     Abstract base class for DataProvider implementation. Subclasses have to
     overwrite the `_next_data` method that load the next data and label array.
     This implementation automatically clips the data with the given min/max and
-    normalizes the values to (0,1]. To change this behavoir the `_process_data`
+    normalizes the values to (0,1]. To change this behaviour the `_process_data`
     method can be overwritten. To enable some post processing such as data
     augmentation the `_post_process` method can be overwritten.
 

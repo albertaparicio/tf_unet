@@ -48,6 +48,7 @@ if __name__ == '__main__':
   parser.set_defaults(dev=False, show_summary=False, display=False)
   args = parser.parse_args()
 
+  print('parsed arguments')
   # nx = 572
   # ny = 572
 
@@ -67,20 +68,29 @@ if __name__ == '__main__':
                                          args.img_path, args.labels_path,
                                          display=args.display)
 
+  print('initialized data generators')
+
   net = unet.Unet(channels=3,
                   n_class=args.num_classes,
                   layers=3,
                   features_root=16,
                   cost="dice_coefficient")
 
+  print('initialized unet class')
+
   trainer = unet.Trainer(net, optimizer="momentum", batch_size=args.batch_size,
                          opt_kwargs=dict(momentum=0.2))
+
+  print('initialized unet trainer')
+
   path = trainer.train(train_generator, "./unet_trained",
                        training_iters=training_iters,
                        epochs=args.epochs,
                        dropout=dropout,
                        display_step=display_step,
                        restore=restore)
+
+  print('finished training. Proceeding to test')
 
   x_test, y_test, _ = test_generator(4)
   prediction = net.predict(path, x_test)

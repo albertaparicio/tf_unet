@@ -211,6 +211,9 @@ class Unet(object):
 
     self.gradients_node = tf.gradients(self.cost, self.variables)
 
+    print('n_class: {}'.format(n_class))
+    print('y: {}'.format(self.y.get_shape()))
+    print('pixel_wise_softmax_2: {}'.format(pixel_wise_softmax_2(logits).get_shape))
     self.cross_entropy = tf.reduce_mean(
         cross_entropy(tf.reshape(self.y, [-1, n_class]),
                       tf.reshape(pixel_wise_softmax_2(logits), [-1, n_class])))

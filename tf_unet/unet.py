@@ -213,7 +213,9 @@ class Unet(object):
 
     print('n_class: {}'.format(n_class))
     print('y: {}'.format(self.y.get_shape()))
-    print('pixel_wise_softmax_2: {}'.format(pixel_wise_softmax_2(logits).get_shape))
+    print(
+        'pixel_wise_softmax_2: {}'.format(
+            pixel_wise_softmax_2(logits).get_shape))
     self.cross_entropy = tf.reduce_mean(
         cross_entropy(tf.reshape(self.y, [-1, n_class]),
                       tf.reshape(pixel_wise_softmax_2(logits), [-1, n_class])))
@@ -443,12 +445,9 @@ class Trainer(object):
 
       # The data_provider is assumed to be a generator
       test_x, test_y, _ = next(data_provider(self.verification_batch_size,
-                                             validation=True))
+                                             validation=True, full_patch=True))
 
-      pred_shape = self.store_prediction(
-          sess, test_x,
-          test_y.reshape((
-            self.verification_batch_size, 1, 1, self.net.n_class)), "_init")
+      pred_shape = self.store_prediction(sess, test_x, test_y, "_init")
 
       summary_writer = tf.summary.FileWriter(output_path, graph=sess.graph)
       logging.info("Start optimization")
@@ -458,7 +457,8 @@ class Trainer(object):
         total_loss = 0
         for step in range((epoch * training_iters),
                           ((epoch + 1) * training_iters)):
-          batch_x, batch_y, _ = next(data_provider(self.batch_size))
+          batch_x, batch_y, _ = next(
+              data_provider(self.batch_size, full_patch=True))
 
           # Run optimization op (backprop)
           _, loss, lr, gradients = sess.run((
@@ -466,9 +466,7 @@ class Trainer(object):
             self.net.gradients_node),
               feed_dict={
                 self.net.x        : batch_x,
-                self.net.y        : util.crop_to_shape(
-                    batch_y.reshape((self.batch_size, 1, 1, self.net.n_class)),
-                    pred_shape),
+                self.net.y        : util.crop_to_shape(batch_y, pred_shape),
                 self.net.keep_prob: dropout})
 
           if avg_gradients is None:
@@ -484,9 +482,7 @@ class Trainer(object):
           if step % display_step == 0:
             self.output_minibatch_stats(
                 sess, summary_writer, step, batch_x,
-                util.crop_to_shape(
-                    batch_y.reshape((self.batch_size, 1, 1, self.net.n_class)),
-                    pred_shape))
+                util.crop_to_shape(batch_y, pred_shape))
 
           total_loss += loss
 
@@ -513,11 +509,8 @@ class Trainer(object):
 
     logging.info(
         "Verification error= {:.1f}%, loss= {:.4f}".format(
-            error_rate(prediction,
-                       util.crop_to_shape(
-                           batch_y,
-                           prediction.shape)),
-            loss))
+            error_rate(prediction, util.crop_to_shape(batch_y, prediction.shape)
+                       ), loss))
 
     # img = util.combine_img_prediction(batch_x, batch_y, prediction)
     # util.save_image(img, "%s/%s.jpg" % (self.prediction_path, name))

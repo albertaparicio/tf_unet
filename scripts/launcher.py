@@ -33,7 +33,7 @@ if __name__ == '__main__':
   parser.add_argument('--labels_path', type=str, default="labels")
   parser.add_argument('--train_list', type=str, default="training.list")
   parser.add_argument('--test_list', type=str, default="test.list")
-  parser.add_argument('--batch_size', type=int, default=1024)
+  parser.add_argument('--batch_size', type=int, default=2)
   parser.add_argument('--window_size', type=int, default=572)
   parser.add_argument('--num_classes', type=int, default=3)
   parser.add_argument('--epochs', type=int, default=1)
@@ -59,14 +59,16 @@ if __name__ == '__main__':
   restore = False
 
   # generator = image_gen.RgbDataProvider(nx, ny, cnt=5, rectangles=False)
-  train_generator = PatchesGeneratorClass(args.train_list, args.window_size,
+  train_patches = PatchesGeneratorClass(args.train_list, args.window_size,
                                           args.num_classes, args.data_path,
                                           args.img_path, args.labels_path)
+  train_generator = train_patches.generate_patches
 
-  test_generator = PatchesGeneratorClass(args.test_list, args.window_size,
+  test_patches = PatchesGeneratorClass(args.test_list, args.window_size,
                                          args.num_classes, args.data_path,
                                          args.img_path, args.labels_path,
                                          display=args.display)
+  test_generator = test_patches.generate_patches
 
   print('initialized data generators')
 
@@ -74,7 +76,7 @@ if __name__ == '__main__':
                   n_class=args.num_classes,
                   layers=3,
                   features_root=16,
-                  cost="dice_coefficient")
+                  cost="cross_entropy")
 
   print('initialized unet class')
 

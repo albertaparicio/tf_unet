@@ -54,8 +54,7 @@ def create_conv_net(x, keep_prob, channels, n_class, layers=3, features_root=16,
   """
 
   logging.info(
-      "Layers {layers}, features {features}, filter size {filter_size}x{"
-      "filter_size}, pool size: {pool_size}x{pool_size}".format(
+      'Layers {layers}, features {features}, filter size {filter_size}x{filter_size}, pool size: {pool_size}x{pool_size}'.format(
           layers=layers,
           features=features_root,
           filter_size=filter_size,
@@ -444,8 +443,7 @@ class Trainer(object):
           self.net.restore(sess, ckpt.model_checkpoint_path)
 
       # The data_provider is assumed to be a generator
-      test_x, test_y, _ = next(data_provider(self.verification_batch_size,
-                                             validation=True, full_patch=True))
+      test_x, test_y = next(data_provider(self.verification_batch_size))
 
       pred_shape = self.store_prediction(sess, test_x, test_y, "_init")
 
@@ -457,8 +455,7 @@ class Trainer(object):
         total_loss = 0
         for step in range((epoch * training_iters),
                           ((epoch + 1) * training_iters)):
-          batch_x, batch_y, _ = next(
-              data_provider(self.batch_size, full_patch=True))
+          batch_x, batch_y = next(data_provider(self.batch_size))
 
           # Run optimization op (backprop)
           _, loss, lr, gradients = sess.run((

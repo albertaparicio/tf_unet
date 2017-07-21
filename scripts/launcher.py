@@ -22,8 +22,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import argparse
 
-from tf_unet import image_gen, unet, util
-from patches_generator import PatchesGeneratorClass
+from scripts.unet_generator import UNetGeneratorClass
+from tf_unet import unet, util
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
@@ -35,7 +35,7 @@ if __name__ == '__main__':
   parser.add_argument('--test_list', type=str, default="test.list")
   parser.add_argument('--batch_size', type=int, default=2)
   parser.add_argument('--window_size', type=int, default=572)
-  parser.add_argument('--num_classes', type=int, default=3)
+  parser.add_argument('--num_classes', type=int, default=8)
   parser.add_argument('--epochs', type=int, default=1)
   parser.add_argument('--start_epoch', type=int, default=0)
   parser.add_argument('--summary', dest='show_summary', action='store_true',
@@ -58,17 +58,15 @@ if __name__ == '__main__':
   display_step = 2
   restore = False
 
-  # generator = image_gen.RgbDataProvider(nx, ny, cnt=5, rectangles=False)
-  train_patches = PatchesGeneratorClass(args.train_list, args.window_size,
-                                          args.num_classes, args.data_path,
-                                          args.img_path, args.labels_path)
-  train_generator = train_patches.generate_patches
+  train_patches = UNetGeneratorClass(args.train_list, args.num_classes,
+                                     args.data_path, args.img_path,
+                                     args.labels_path)
+  train_generator = train_patches.provide_images
 
-  test_patches = PatchesGeneratorClass(args.test_list, args.window_size,
-                                         args.num_classes, args.data_path,
-                                         args.img_path, args.labels_path,
-                                         display=args.display)
-  test_generator = test_patches.generate_patches
+  test_patches = UNetGeneratorClass(args.test_list, args.num_classes,
+                                    args.data_path, args.img_path,
+                                    args.labels_path)
+  test_generator = test_patches.provide_images
 
   print('initialized data generators')
 

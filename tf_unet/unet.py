@@ -275,57 +275,57 @@ class Unet(object):
     return loss
 
 
-def predict(self, model_path, x_test):
-  """
-  Uses the model to create a prediction for the given data
+  def predict(self, model_path, x_test):
+    """
+    Uses the model to create a prediction for the given data
 
-  :param model_path: path to the model checkpoint to restore
-  :param x_test: Data to predict on. Shape [n, nx, ny, channels]
-  :returns prediction: The unet prediction Shape [n, px, py, labels] (
-  px=nx-self.offset/2)
-  """
+    :param model_path: path to the model checkpoint to restore
+    :param x_test: Data to predict on. Shape [n, nx, ny, channels]
+    :returns prediction: The unet prediction Shape [n, px, py, labels] (
+    px=nx-self.offset/2)
+    """
 
-  init = tf.global_variables_initializer()
-  with tf.Session() as sess:
-    # Initialize variables
-    sess.run(init)
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+      # Initialize variables
+      sess.run(init)
 
-    # Restore model weights from previously saved model
-    self.restore(sess, model_path)
+      # Restore model weights from previously saved model
+      self.restore(sess, model_path)
 
-    y_dummy = np.empty(
-        (x_test.shape[0], x_test.shape[1], x_test.shape[2], self.n_class))
-    prediction = sess.run(self.predicter,
-                          feed_dict={self.x        : x_test, self.y: y_dummy,
-                                     self.keep_prob: 1.})
+      y_dummy = np.empty(
+          (x_test.shape[0], x_test.shape[1], x_test.shape[2], self.n_class))
+      prediction = sess.run(self.predicter,
+                            feed_dict={self.x        : x_test, self.y: y_dummy,
+                                       self.keep_prob: 1.})
 
-  return prediction
-
-
-def save(self, sess, model_path):
-  """
-  Saves the current session to a checkpoint
-
-  :param sess: current session
-  :param model_path: path to file system location
-  """
-
-  saver = tf.train.Saver()
-  save_path = saver.save(sess, model_path)
-  return save_path
+    return prediction
 
 
-def restore(self, sess, model_path):
-  """
-  Restores a session from a checkpoint
+  def save(self, sess, model_path):
+    """
+    Saves the current session to a checkpoint
 
-  :param sess: current session instance
-  :param model_path: path to file system checkpoint location
-  """
+    :param sess: current session
+    :param model_path: path to file system location
+    """
 
-  saver = tf.train.Saver()
-  saver.restore(sess, model_path)
-  logging.info("Model restored from file: %s" % model_path)
+    saver = tf.train.Saver()
+    save_path = saver.save(sess, model_path)
+    return save_path
+
+
+  def restore(self, sess, model_path):
+    """
+    Restores a session from a checkpoint
+
+    :param sess: current session instance
+    :param model_path: path to file system checkpoint location
+    """
+
+    saver = tf.train.Saver()
+    saver.restore(sess, model_path)
+    logging.info("Model restored from file: %s" % model_path)
 
 
 class Trainer(object):
@@ -544,30 +544,30 @@ class Trainer(object):
             error_rate(predictions, batch_y)))
 
 
-def error_rate(predictions, labels):
-  """
-  Return the error rate based on dense predictions and 1-hot labels.
-  """
+  def error_rate(predictions, labels):
+    """
+    Return the error rate based on dense predictions and 1-hot labels.
+    """
 
-  return 100.0 - (
-    100.0 *
-    np.sum(np.argmax(predictions, 3) == np.argmax(labels, 3)) /
-    (predictions.shape[0] * predictions.shape[1] * predictions.shape[2]))
+    return 100.0 - (
+      100.0 *
+      np.sum(np.argmax(predictions, 3) == np.argmax(labels, 3)) /
+      (predictions.shape[0] * predictions.shape[1] * predictions.shape[2]))
 
 
-def get_image_summary(img, idx=0):
-  """
-  Make an image summary for 4d tensor image with index idx
-  """
+  def get_image_summary(img, idx=0):
+    """
+    Make an image summary for 4d tensor image with index idx
+    """
 
-  V = tf.slice(img, (0, 0, 0, idx), (1, -1, -1, 1))
-  V -= tf.reduce_min(V)
-  V /= tf.reduce_max(V)
-  V *= 255
+    V = tf.slice(img, (0, 0, 0, idx), (1, -1, -1, 1))
+    V -= tf.reduce_min(V)
+    V /= tf.reduce_max(V)
+    V *= 255
 
-  img_w = tf.shape(img)[1]
-  img_h = tf.shape(img)[2]
-  V = tf.reshape(V, tf.stack((img_w, img_h, 1)))
-  V = tf.transpose(V, (2, 0, 1))
-  V = tf.reshape(V, tf.stack((-1, img_w, img_h, 1)))
-  return V
+    img_w = tf.shape(img)[1]
+    img_h = tf.shape(img)[2]
+    V = tf.reshape(V, tf.stack((img_w, img_h, 1)))
+    V = tf.transpose(V, (2, 0, 1))
+    V = tf.reshape(V, tf.stack((-1, img_w, img_h, 1)))
+    return V

@@ -27,13 +27,13 @@ from tf_unet import unet, util
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
-      description="Convert voice signal with seq2seq model")
+      description="Classify image patches with a U-Net")
   parser.add_argument('--data_path', type=str, default="data")
   parser.add_argument('--img_path', type=str, default="img")
   parser.add_argument('--labels_path', type=str, default="labels")
   parser.add_argument('--train_list', type=str, default="training.list")
   parser.add_argument('--test_list', type=str, default="test.list")
-  parser.add_argument('--batch_size', type=int, default=2)
+  parser.add_argument('--batch_size', type=int, default=5)
   parser.add_argument('--window_size', type=int, default=572)
   parser.add_argument('--num_classes', type=int, default=8)
   parser.add_argument('--epochs', type=int, default=1)

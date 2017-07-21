@@ -20,12 +20,12 @@ author: jakeret
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import logging
 import os
 import shutil
-import numpy as np
 from collections import OrderedDict
-import logging
 
+import numpy as np
 import tensorflow as tf
 
 from tf_unet import util
@@ -54,7 +54,8 @@ def create_conv_net(x, keep_prob, channels, n_class, layers=3, features_root=16,
   """
 
   logging.info(
-      'Layers {layers}, features {features}, filter size {filter_size}x{filter_size}, pool size: {pool_size}x{pool_size}'.format(
+      'Layers {layers}, features {features}, filter size {filter_size}x{'
+      'filter_size}, pool size: {pool_size}x{pool_size}'.format(
           layers=layers,
           features=features_root,
           filter_size=filter_size,
@@ -180,78 +181,90 @@ def create_conv_net(x, keep_prob, channels, n_class, layers=3, features_root=16,
 
 
 class Unet(object):
-    """
-    A unet implementation
-    
-    :param channels: (optional) number of channels in the input image
-    :param n_class: (optional) number of output labels
-    :param cost: (optional) name of the cost function. Default is 'cross_entropy'
-    :param cost_kwargs: (optional) kwargs passed to the cost function. See Unet._get_cost for more options
-    """
-    
-    def __init__(self, channels=3, n_class=2, cost="cross_entropy", cost_kwargs={}, **kwargs):
-        tf.reset_default_graph()
-        
-        self.n_class = n_class
-        self.summaries = kwargs.get("summaries", True)
-        
-        self.x = tf.placeholder("float", shape=[None, None, None, channels])
-        self.y = tf.placeholder("float", shape=[None, None, None, n_class])
-        self.keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
-        
-        logits, self.variables, self.offset = create_conv_net(self.x, self.keep_prob, channels, n_class, **kwargs)
-        
-        self.cost = self._get_cost(logits, cost, cost_kwargs)
-        
-        self.gradients_node = tf.gradients(self.cost, self.variables)
-         
+  """
+  A unet implementation
+
+  :param channels: (optional) number of channels in the input image
+  :param n_class: (optional) number of output labels
+  :param cost: (optional) name of the cost function. Default is 'cross_entropy'
+  :param cost_kwargs: (optional) kwargs passed to the cost function. See
+  Unet._get_cost for more options
+  """
+
+  def __init__(self, channels=3, n_class=2, cost="cross_entropy",
+               cost_kwargs={}, **kwargs):
+    tf.reset_default_graph()
+
+    self.n_class = n_class
+    self.summaries = kwargs.get("summaries", True)
+
+    self.x = tf.placeholder("float", shape=[None, None, None, channels])
+    self.y = tf.placeholder("float", shape=[None, None, None, n_class])
+    self.keep_prob = tf.placeholder(tf.float32)  # dropout (keep probability)
+
+    logits, self.variables, self.offset = create_conv_net(self.x,
+                                                          self.keep_prob,
+                                                          channels, n_class,
+                                                          **kwargs)
+
+    self.cost = self._get_cost(logits, cost, cost_kwargs)
+
+    self.gradients_node = tf.gradients(self.cost, self.variables)
+
     print('n_class: {}'.format(n_class))
     print('y: {}'.format(self.y.get_shape()))
     print(
         'pixel_wise_softmax_2: {}'.format(
-            pixel_wise_softmax_2(logits).get_shape))    self.cross_entropy = tf.reduce_mean(cross_entropy(tf.reshape(self.y, [-1, n_class]),
-                                                          tf.reshape(pixel_wise_softmax_2(logits), [-1, n_class])))
+            pixel_wise_softmax_2(logits).get_shape))
+    self.cross_entropy = tf.reduce_mean(
+        cross_entropy(tf.reshape(self.y, [-1, n_class]),
+                      tf.reshape(pixel_wise_softmax_2(logits), [-1, n_class])))
 
-        self.predicter = pixel_wise_softmax_2(logits)
-        self.correct_pred = tf.equal(tf.argmax(self.predicter, 3), tf.argmax(self.y, 3))
-        self.accuracy = tf.reduce_mean(tf.cast(self.correct_pred, tf.float32))
+    self.predicter = pixel_wise_softmax_2(logits)
+    self.correct_pred = tf.equal(tf.argmax(self.predicter, 3),
+                                 tf.argmax(self.y, 3))
+    self.accuracy = tf.reduce_mean(tf.cast(self.correct_pred, tf.float32))
 
-    def _get_cost(self, logits, cost_name, cost_kwargs):
-        """
-        Constructs the cost function, either cross_entropy, weighted cross_entropy or dice_coefficient.
-        Optional arguments are:
-        class_weights: weights for the different classes in case of multi-class imbalance
-        regularizer: power of the L2 regularizers added to the loss function
-        """
+  def _get_cost(self, logits, cost_name, cost_kwargs):
+    """
+    Constructs the cost function, either cross_entropy, weighted
+    cross_entropy or dice_coefficient.
+    Optional arguments are:
+    class_weights: weights for the different classes in case of multi-class
+    imbalance
+    regularizer: power of the L2 regularizers added to the loss function
+    """
 
-        flat_logits = tf.reshape(logits, [-1, self.n_class])
-        flat_labels = tf.reshape(self.y, [-1, self.n_class])
-        if cost_name == "cross_entropy":
-            class_weights = cost_kwargs.pop("class_weights", None)
+    flat_logits = tf.reshape(logits, [-1, self.n_class])
+    flat_labels = tf.reshape(self.y, [-1, self.n_class])
+    if cost_name == "cross_entropy":
+      class_weights = cost_kwargs.pop("class_weights", None)
 
-            if class_weights is not None:
-                class_weights = tf.constant(np.array(class_weights, dtype=np.float32))
+      if class_weights is not None:
+        class_weights = tf.constant(np.array(class_weights, dtype=np.float32))
 
-                weight_map = tf.multiply(flat_labels, class_weights)
-                weight_map = tf.reduce_sum(weight_map, axis=1)
+        weight_map = tf.multiply(flat_labels, class_weights)
+        weight_map = tf.reduce_sum(weight_map, axis=1)
 
-                loss_map = tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits, labels=flat_labels)
-                weighted_loss = tf.multiply(loss_map, weight_map)
-        
-                loss = tf.reduce_mean(weighted_loss)
-                
-            else:
-                loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits, 
-                                                                              labels=flat_labels))
-        elif cost_name == "dice_coefficient":
-            eps = 1e-5
-            prediction = pixel_wise_softmax_2(logits)
-            intersection = tf.reduce_sum(prediction * self.y)
-            union =  eps + tf.reduce_sum(prediction) + tf.reduce_sum(self.y)
-            loss = -(2 * intersection/ (union))
-            
-        else:
-            raise ValueError("Unknown cost function: "%cost_name)
+        loss_map = tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
+                                                           labels=flat_labels)
+        weighted_loss = tf.multiply(loss_map, weight_map)
+
+        loss = tf.reduce_mean(weighted_loss)
+
+      else:
+        loss = tf.reduce_mean(
+            tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
+                                                    labels=flat_labels))
+    elif cost_name == "dice_coefficient":
+      eps = 1e-5
+      prediction = pixel_wise_softmax_2(logits)
+      intersection = tf.reduce_sum(prediction * self.y)
+      union = eps + tf.reduce_sum(prediction) + tf.reduce_sum(self.y)
+      loss = -(2 * intersection / (union))
+
+    else:
+      raise ValueError("Unknown cost function: " % cost_name)
 
     regularizer = cost_kwargs.pop("regularizer", None)
     if regularizer is not None:
@@ -261,55 +274,58 @@ class Unet(object):
 
     return loss
 
-  def predict(self, model_path, x_test):
-    """
-    Uses the model to create a prediction for the given data
 
-    :param model_path: path to the model checkpoint to restore
-    :param x_test: Data to predict on. Shape [n, nx, ny, channels]
-    :returns prediction: The unet prediction Shape [n, px, py, labels] (
-    px=nx-self.offset/2)
-    """
+def predict(self, model_path, x_test):
+  """
+  Uses the model to create a prediction for the given data
 
-    init = tf.global_variables_initializer()
-    with tf.Session() as sess:
-      # Initialize variables
-      sess.run(init)
+  :param model_path: path to the model checkpoint to restore
+  :param x_test: Data to predict on. Shape [n, nx, ny, channels]
+  :returns prediction: The unet prediction Shape [n, px, py, labels] (
+  px=nx-self.offset/2)
+  """
 
-      # Restore model weights from previously saved model
-      self.restore(sess, model_path)
+  init = tf.global_variables_initializer()
+  with tf.Session() as sess:
+    # Initialize variables
+    sess.run(init)
 
-      y_dummy = np.empty(
-          (x_test.shape[0], x_test.shape[1], x_test.shape[2], self.n_class))
-      prediction = sess.run(self.predicter,
-                            feed_dict={self.x        : x_test, self.y: y_dummy,
-                                       self.keep_prob: 1.})
+    # Restore model weights from previously saved model
+    self.restore(sess, model_path)
 
-    return prediction
+    y_dummy = np.empty(
+        (x_test.shape[0], x_test.shape[1], x_test.shape[2], self.n_class))
+    prediction = sess.run(self.predicter,
+                          feed_dict={self.x        : x_test, self.y: y_dummy,
+                                     self.keep_prob: 1.})
 
-  def save(self, sess, model_path):
-    """
-    Saves the current session to a checkpoint
+  return prediction
 
-    :param sess: current session
-    :param model_path: path to file system location
-    """
 
-    saver = tf.train.Saver()
-    save_path = saver.save(sess, model_path)
-    return save_path
+def save(self, sess, model_path):
+  """
+  Saves the current session to a checkpoint
 
-  def restore(self, sess, model_path):
-    """
-    Restores a session from a checkpoint
+  :param sess: current session
+  :param model_path: path to file system location
+  """
 
-    :param sess: current session instance
-    :param model_path: path to file system checkpoint location
-    """
+  saver = tf.train.Saver()
+  save_path = saver.save(sess, model_path)
+  return save_path
 
-    saver = tf.train.Saver()
-    saver.restore(sess, model_path)
-    logging.info("Model restored from file: %s" % model_path)
+
+def restore(self, sess, model_path):
+  """
+  Restores a session from a checkpoint
+
+  :param sess: current session instance
+  :param model_path: path to file system checkpoint location
+  """
+
+  saver = tf.train.Saver()
+  saver.restore(sess, model_path)
+  logging.info("Model restored from file: %s" % model_path)
 
 
 class Trainer(object):

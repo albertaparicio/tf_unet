@@ -544,30 +544,30 @@ class Trainer(object):
             error_rate(predictions, batch_y)))
 
 
-  def error_rate(predictions, labels):
-    """
-    Return the error rate based on dense predictions and 1-hot labels.
-    """
+def error_rate(predictions, labels):
+  """
+  Return the error rate based on dense predictions and 1-hot labels.
+  """
 
-    return 100.0 - (
-      100.0 *
-      np.sum(np.argmax(predictions, 3) == np.argmax(labels, 3)) /
-      (predictions.shape[0] * predictions.shape[1] * predictions.shape[2]))
+  return 100.0 - (
+    100.0 *
+    np.sum(np.argmax(predictions, 3) == np.argmax(labels, 3)) /
+    (predictions.shape[0] * predictions.shape[1] * predictions.shape[2]))
 
 
-  def get_image_summary(img, idx=0):
-    """
-    Make an image summary for 4d tensor image with index idx
-    """
+def get_image_summary(img, idx=0):
+  """
+  Make an image summary for 4d tensor image with index idx
+  """
 
-    V = tf.slice(img, (0, 0, 0, idx), (1, -1, -1, 1))
-    V -= tf.reduce_min(V)
-    V /= tf.reduce_max(V)
-    V *= 255
+  V = tf.slice(img, (0, 0, 0, idx), (1, -1, -1, 1))
+  V -= tf.reduce_min(V)
+  V /= tf.reduce_max(V)
+  V *= 255
 
-    img_w = tf.shape(img)[1]
-    img_h = tf.shape(img)[2]
-    V = tf.reshape(V, tf.stack((img_w, img_h, 1)))
-    V = tf.transpose(V, (2, 0, 1))
-    V = tf.reshape(V, tf.stack((-1, img_w, img_h, 1)))
-    return V
+  img_w = tf.shape(img)[1]
+  img_h = tf.shape(img)[2]
+  V = tf.reshape(V, tf.stack((img_w, img_h, 1)))
+  V = tf.transpose(V, (2, 0, 1))
+  V = tf.reshape(V, tf.stack((-1, img_w, img_h, 1)))
+  return V

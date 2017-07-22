@@ -34,7 +34,7 @@ if __name__ == '__main__':
   parser.add_argument('--train_list', type=str, default="training.list")
   parser.add_argument('--test_list', type=str, default="test.list")
   parser.add_argument('--batch_size', type=int, default=5)
-  parser.add_argument('--window_size', type=int, default=572)
+  # parser.add_argument('--window_size', type=int, default=572)
   parser.add_argument('--num_classes', type=int, default=8)
   parser.add_argument('--epochs', type=int, default=1)
   parser.add_argument('--start_epoch', type=int, default=0)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
   print('finished training. Proceeding to test')
 
-  x_test, y_test = test_generator(4)
+  x_test, y_test = next(test_generator(4))
   prediction = net.predict(path, x_test)
 
   print("Testing error rate: {:.2f}%".format(

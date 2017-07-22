@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
   print('finished training. Proceeding to test')
 
-  x_test, y_test, _ = test_generator(4)
+  x_test, y_test = test_generator(4)
   prediction = net.predict(path, x_test)
 
   print("Testing error rate: {:.2f}%".format(

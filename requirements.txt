@@ -1,4 +1,4 @@
 click
 numpy
 Pillow
-tensorflow>=1.0.0
+tensorflow-gpu>=1.0.0

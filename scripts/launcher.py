@@ -35,7 +35,7 @@ if __name__ == '__main__':
   parser.add_argument('--test_list', type=str, default="test.list")
   parser.add_argument('--batch_size', type=int, default=5)
   parser.add_argument('--num_classes', type=int, default=8)
-  parser.add_argument('--epochs', type=int, default=1)
+  parser.add_argument('--epochs', type=int, default=10)
   parser.add_argument('--start_epoch', type=int, default=0)
   parser.add_argument('--summary', dest='show_summary', action='store_true',
                       help='Show summary of model')
@@ -45,11 +45,6 @@ if __name__ == '__main__':
   parser.set_defaults(dev=False, show_summary=False, display=False)
   args = parser.parse_args()
 
-  # nx = 572
-  # ny = 572
-
-  # training_iters = 20
-  # epochs = 100
   dropout = 0.75  # Dropout, probability to keep units
   display_step = 2
   restore = False
@@ -62,20 +57,15 @@ if __name__ == '__main__':
                                       args.batch_size, args.data_path,
                                       args.img_path, args.labels_path)
 
-  net = unet.Unet(channels=3,
-                  n_class=args.num_classes,
-                  layers=1,
-                  features_root=16,
-                  cost="dice_coefficient")
+  net = unet.Unet(channels=3, n_class=args.num_classes, layers=3,
+                  features_root=16, cost="cross_entropy")
 
-  trainer = unet.Trainer(net, optimizer="momentum",
-                         opt_kwargs=dict(momentum=0.2))
+  trainer = unet.Trainer(net, batch_size=args.batch_size, optimizer="adam")#,
+                         # opt_kwargs=dict(momentum=0.2))
   path = trainer.train(train_generator, "./unet_trained",
                        training_iters=train_generator.training_iters,
-                       epochs=args.epochs,
-                       dropout=dropout,
-                       display_step=display_step,
-                       restore=restore)
+                       epochs=args.epochs, dropout=dropout,
+                       display_step=display_step, restore=restore)
 
   x_test, y_test = test_generator(args.batch_size)
   prediction = net.predict(path, x_test)

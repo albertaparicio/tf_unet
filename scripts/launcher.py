@@ -21,8 +21,9 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import argparse
+import os
 
-from unet_generator import UNetGeneratorClass
+from unet_generator import UNetGeneratorClass, save_prediction_color_code
 
 from tf_unet import unet, util
 
@@ -64,9 +65,9 @@ if __name__ == '__main__':
   train_generator = UNetGeneratorClass(args.train_list, args.num_classes,
                                        args.batch_size, args.data_path,
                                        args.img_path, args.labels_path)
-  test_generator = UNetGeneratorClass(args.test_list, args.num_classes,
-                                      args.batch_size, args.data_path,
-                                      args.img_path, args.labels_path)
+  test_generator = UNetGeneratorClass(args.test_list, args.num_classes, 1,
+                                      args.data_path, args.img_path,
+                                      args.labels_path)
   net = unet.Unet(channels=3, n_class=args.num_classes, layers=3,
                   features_root=16, cost="cross_entropy")
 
@@ -85,3 +86,7 @@ if __name__ == '__main__':
     print("Testing error rate: {:.2f}%".format(
         unet.error_rate(prediction,
                         util.crop_to_shape(y_test, prediction.shape))))
+
+    save_prediction_color_code(y_test, prediction,
+                               os.path.join(args.data_path, 'res'),
+                               test_generator.files_list[0][0])

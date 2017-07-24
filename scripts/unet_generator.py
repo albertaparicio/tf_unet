@@ -8,8 +8,44 @@ import os
 from itertools import chain, repeat
 
 import numpy as np
-from scipy.misc import imread
+from scipy.misc import imread, imsave
 from tensorflow.contrib.keras.python.keras.utils.np_utils import to_categorical
+
+from tf_unet import util
+
+
+def save_prediction_color_code(ground_truth, prediction, save_path, filename):
+  color_code_dict = [
+    [0, 0, 0],  # black
+    # [0, 0, 0],  # black
+    [1, 0, 0],  # red
+    [1, 0.4392156863, 0],  # orange
+    [1, 1, 1],  # white
+    [1, 0, 1],  # magenta
+    [0, 0, 1],  # blue
+    [0, 1, 0],  # green
+    [0, 1, 1]  # cyan
+    ]
+
+  # Crop ground truth image
+  crop_gt = util.crop_to_shape(ground_truth, prediction.shape)
+
+  # Argmax to remove one-hot encoding
+  gt_categorical = np.argmax(crop_gt, axis=3).squeeze()
+  pr_categorical = np.argmax(prediction, axis=3).squeeze()
+
+  gt_mat = np.zeros(gt_categorical.shape + (3,))
+  pr_mat = np.zeros(pr_categorical.shape + (3,))
+
+  for num in range(len(color_code_dict)):
+    gt_mat[gt_categorical == num, :] = color_code_dict[num]
+    pr_mat[pr_categorical == num, :] = color_code_dict[num]
+
+  if not os.path.exists(save_path):
+    os.makedirs(save_path)
+
+  imsave(os.path.join(save_path, filename + '_gt.png'), gt_mat)
+  imsave(os.path.join(save_path, filename + '_pr.png'), pr_mat)
 
 
 class UNetGeneratorClass(object):

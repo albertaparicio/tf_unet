@@ -22,7 +22,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import argparse
 
-from scripts.unet_generator import UNetGeneratorClass
+from unet_generator import UNetGeneratorClass
+
 from tf_unet import unet, util
 
 if __name__ == '__main__':
@@ -41,13 +42,23 @@ if __name__ == '__main__':
                       help='Show summary of model')
   parser.add_argument('--dev', dest='dev', action='store_true',
                       help='Development mode')
+  parser.add_argument('--no-train', dest='do_train',
+                      action='store_false', help='Flag to train or not.')
+  parser.add_argument('--no-test', dest='do_test',
+                      action='store_false', help='Flag to test or not.')
 
-  parser.set_defaults(dev=False, show_summary=False, display=False)
+  parser.set_defaults(dev=False, show_summary=False, display=False,
+                      do_train=True, do_test=True)
   args = parser.parse_args()
 
   dropout = 0.75  # Dropout, probability to keep units
   display_step = 2
   restore = False
+
+  if args.do_train:
+    epochs = args.epochs
+  else:
+    epochs = 0
 
   # generator = image_gen.RgbDataProvider(nx, ny, cnt=20, rectangles=False)
   train_generator = UNetGeneratorClass(args.train_list, args.num_classes,
@@ -56,20 +67,21 @@ if __name__ == '__main__':
   test_generator = UNetGeneratorClass(args.test_list, args.num_classes,
                                       args.batch_size, args.data_path,
                                       args.img_path, args.labels_path)
-
   net = unet.Unet(channels=3, n_class=args.num_classes, layers=3,
                   features_root=16, cost="cross_entropy")
 
-  trainer = unet.Trainer(net, batch_size=args.batch_size, optimizer="adam")#,
-                         # opt_kwargs=dict(momentum=0.2))
+  trainer = unet.Trainer(net, batch_size=args.batch_size, optimizer="adam")  # ,
+  # opt_kwargs=dict(momentum=0.2))
+
   path = trainer.train(train_generator, "./unet_trained",
                        training_iters=train_generator.training_iters,
-                       epochs=args.epochs, dropout=dropout,
+                       epochs=epochs, dropout=dropout,
                        display_step=display_step, restore=restore)
 
-  x_test, y_test = test_generator(args.batch_size)
-  prediction = net.predict(path, x_test)
+  if args.do_test:
+    x_test, y_test = test_generator(args.batch_size)
+    prediction = net.predict(path, x_test)
 
-  print("Testing error rate: {:.2f}%".format(
-      unet.error_rate(prediction,
-                      util.crop_to_shape(y_test, prediction.shape))))
+    print("Testing error rate: {:.2f}%".format(
+        unet.error_rate(prediction,
+                        util.crop_to_shape(y_test, prediction.shape))))

@@ -35,7 +35,7 @@ if __name__ == '__main__':
   parser.add_argument('--labels_path', type=str, default="labels")
   parser.add_argument('--train_list', type=str, default="training.list")
   parser.add_argument('--test_list', type=str, default="test.list")
-  parser.add_argument('--batch_size', type=int, default=5)
+  parser.add_argument('--display_step', type=int, default=5)
   parser.add_argument('--num_classes', type=int, default=8)
   parser.add_argument('--epochs', type=int, default=10)
   parser.add_argument('--start_epoch', type=int, default=0)
@@ -53,7 +53,6 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   dropout = 0.75  # Dropout, probability to keep units
-  display_step = 2
   restore = False
 
   if args.do_train:
@@ -63,24 +62,24 @@ if __name__ == '__main__':
 
   # generator = image_gen.RgbDataProvider(nx, ny, cnt=20, rectangles=False)
   train_generator = UNetGeneratorClass(args.train_list, args.num_classes,
-                                       args.batch_size, args.data_path,
-                                       args.img_path, args.labels_path)
-  test_generator = UNetGeneratorClass(args.test_list, args.num_classes, 1,
+                                       args.data_path, args.img_path,
+                                       args.labels_path)
+  test_generator = UNetGeneratorClass(args.test_list, args.num_classes,
                                       args.data_path, args.img_path,
                                       args.labels_path)
-  net = unet.Unet(channels=3, n_class=args.num_classes, layers=3,
+  net = unet.Unet(channels=3, n_class=args.num_classes, layers=1,
                   features_root=16, cost="cross_entropy")
 
-  trainer = unet.Trainer(net, batch_size=args.batch_size, optimizer="adam")  # ,
+  trainer = unet.Trainer(net, batch_size=1, optimizer="adam")  # ,
   # opt_kwargs=dict(momentum=0.2))
 
   path = trainer.train(train_generator, "./unet_trained",
                        training_iters=train_generator.training_iters,
                        epochs=epochs, dropout=dropout,
-                       display_step=display_step, restore=restore)
+                       display_step=args.display_step, restore=restore)
 
   if args.do_test:
-    x_test, y_test = test_generator(args.batch_size)
+    x_test, y_test = test_generator(1)
     prediction = net.predict(path, x_test)
 
     print("Testing error rate: {:.2f}%".format(

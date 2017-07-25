@@ -82,3 +82,4 @@ docs/_build
 .idea/**/mongoSettings.xml
 /.python-version
 .cache
+/TODO.yaml

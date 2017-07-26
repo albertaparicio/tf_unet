@@ -68,8 +68,8 @@ def data_augmentation(data):
 
     # Rotations
     rotate(data, angle=180, resize=False),
-    # rotate(data, angle=90, resize=True),
-    # rotate(rotate(data, angle=90, resize=True), angle=180, resize=False),
+    rotate(data, angle=90, resize=True),
+    rotate(rotate(data, angle=90, resize=True), angle=180, resize=False),
 
     # Mirrorings
     h_i_mirror,
@@ -77,12 +77,12 @@ def data_augmentation(data):
 
     # Rotated mirrorings
     rotate(h_i_mirror, angle=180, resize=False),
-    # rotate(h_i_mirror, angle=90, resize=True),
-    # rotate(rotate(h_i_mirror, angle=90, resize=True), angle=180, resize=False),
+    rotate(h_i_mirror, angle=90, resize=True),
+    rotate(rotate(h_i_mirror, angle=90, resize=True), angle=180, resize=False),
 
     rotate(v_i_mirror, angle=180, resize=False),
-    # rotate(v_i_mirror, angle=90, resize=True),
-    # rotate(rotate(v_i_mirror, angle=90, resize=True), angle=180, resize=False)
+    rotate(v_i_mirror, angle=90, resize=True),
+    rotate(rotate(v_i_mirror, angle=90, resize=True), angle=180, resize=False)
     ]
 
 

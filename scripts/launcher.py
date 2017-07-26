@@ -67,7 +67,7 @@ if __name__ == '__main__':
   test_generator = UNetGeneratorClass(args.test_list, args.num_classes,
                                       args.data_path, args.img_path,
                                       args.labels_path)
-  net = unet.Unet(channels=3, n_class=args.num_classes, layers=1,
+  net = unet.Unet(channels=3, n_class=args.num_classes, layers=3,
                   features_root=16, cost="cross_entropy")
 
   trainer = unet.Trainer(net, batch_size=1, optimizer="adam")  # ,

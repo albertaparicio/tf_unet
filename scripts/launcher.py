@@ -21,8 +21,9 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import argparse
+import os
 
-from scripts.unet_generator import UNetGeneratorClass
+from unet_generator import UNetGeneratorClass
 from tf_unet import unet, util
 
 if __name__ == '__main__':
@@ -33,68 +34,62 @@ if __name__ == '__main__':
   parser.add_argument('--labels_path', type=str, default="labels")
   parser.add_argument('--train_list', type=str, default="training.list")
   parser.add_argument('--test_list', type=str, default="test.list")
-  parser.add_argument('--batch_size', type=int, default=5)
-  # parser.add_argument('--window_size', type=int, default=572)
+  parser.add_argument('--display_step', type=int, default=5)
   parser.add_argument('--num_classes', type=int, default=8)
-  parser.add_argument('--epochs', type=int, default=1)
+  parser.add_argument('--batch_size', type=int, default=5)
+  parser.add_argument('--patch_size', type=int, default=500)
+  parser.add_argument('--patch_overlap', type=int, default=150)
+  parser.add_argument('--epochs', type=int, default=10)
   parser.add_argument('--start_epoch', type=int, default=0)
   parser.add_argument('--summary', dest='show_summary', action='store_true',
                       help='Show summary of model')
   parser.add_argument('--dev', dest='dev', action='store_true',
                       help='Development mode')
-  parser.add_argument('--display', dest='display', action='store_true',
-                      help='Display image with test results')
+  parser.add_argument('--no-train', dest='do_train',
+                      action='store_false', help='Flag to train or not.')
+  parser.add_argument('--no-test', dest='do_test',
+                      action='store_false', help='Flag to test or not.')
 
-  parser.set_defaults(dev=False, show_summary=False, display=False)
+  parser.set_defaults(dev=False, show_summary=False, display=False,
+                      do_train=True, do_test=True)
   args = parser.parse_args()
 
-  print('parsed arguments')
-  # nx = 572
-  # ny = 572
-
-  training_iters = 20
-  # epochs = 1
   dropout = 0.75  # Dropout, probability to keep units
-  display_step = 2
   restore = False
 
-  train_patches = UNetGeneratorClass(args.train_list, args.num_classes,
-                                     args.data_path, args.img_path,
-                                     args.labels_path)
-  train_generator = train_patches.provide_images
+  if args.do_train:
+    epochs = args.epochs
+  else:
+    epochs = 0
 
-  test_patches = UNetGeneratorClass(args.test_list, args.num_classes,
-                                    args.data_path, args.img_path,
-                                    args.labels_path)
-  test_generator = test_patches.provide_images
+  # generator = image_gen.RgbDataProvider(nx, ny, cnt=20, rectangles=False)
+  train_generator = UNetGeneratorClass(args.train_list, args.num_classes,
+                                       args.batch_size, args.data_path,
+                                       args.img_path, args.labels_path,
+                                       args.patch_size, args.patch_overlap)
+  test_generator = UNetGeneratorClass(args.test_list, args.num_classes, 1,
+                                      args.data_path, args.img_path,
+                                      args.labels_path, args.patch_size,
+                                      args.patch_overlap)
+  net = unet.Unet(channels=3, n_class=args.num_classes, layers=3,
+                  features_root=16, cost="cross_entropy")
 
-  print('initialized data generators')
-
-  net = unet.Unet(channels=3,
-                  n_class=args.num_classes,
-                  layers=3,
-                  features_root=16,
-                  cost="cross_entropy")
-
-  print('initialized unet class')
-
-  trainer = unet.Trainer(net, optimizer="momentum", batch_size=args.batch_size,
-                         opt_kwargs=dict(momentum=0.2))
-
-  print('initialized unet trainer')
+  trainer = unet.Trainer(net, batch_size=args.batch_size, optimizer="adam")  # ,
+  # opt_kwargs=dict(momentum=0.2))
 
   path = trainer.train(train_generator, "./unet_trained",
-                       training_iters=training_iters,
-                       epochs=args.epochs,
-                       dropout=dropout,
-                       display_step=display_step,
-                       restore=restore)
+                       training_iters=train_generator.training_iters,
+                       epochs=epochs, dropout=dropout,
+                       display_step=args.display_step, restore=restore)
 
-  print('finished training. Proceeding to test')
+  if args.do_test:
+    x_test, y_test = test_generator(1)
+    prediction = net.predict(path, x_test)
 
-  x_test, y_test = next(test_generator(4))
-  prediction = net.predict(path, x_test)
+    print("Testing error rate: {:.2f}%".format(
+        unet.error_rate(prediction,
+                        util.crop_to_shape(y_test, prediction.shape))))
 
-  print("Testing error rate: {:.2f}%".format(
-      unet.error_rate(prediction,
-                      util.crop_to_shape(y_test, prediction.shape))))
+    UNetGeneratorClass.save_prediction_color_code(
+        y_test, prediction,
+        os.path.join(args.data_path,'res'),test_generator.files_list[0][0])

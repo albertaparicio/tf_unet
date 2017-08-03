@@ -83,3 +83,5 @@ docs/_build
 /.python-version
 .cache
 /TODO.yaml
+/scripts/experiments/
+/scripts/data
